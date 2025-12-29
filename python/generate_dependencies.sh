@@ -21,24 +21,28 @@ if ! python3.11 --version > /dev/null 2>&1 ; then
   exit 1
 fi
 
-if ! python3.11 -m venv --help > /dev/null 2>&1 ; then
-  echo "Your python3.11 installation does not have a required venv module. See s.apache.org/beam-python-dev-wiki for Python installation tips."
+# CHANGED: Check for virtualenv instead of venv
+if ! virtualenv --version > /dev/null 2>&1 ; then
+  echo "You are missing 'virtualenv'. Please install it using: sudo apt install virtualenv"
   exit 1
 fi
 
 set -ex
 
+export PIP_INDEX_URL=https://pypi.org/simple
 ENV_PATH="$PWD/__build__/python_requirements_gen"
 
 rm -rf "$ENV_PATH" 2>/dev/null || true
-# These python versions need to be kept in sync with our dockerfile python versions (https://github.com/GoogleCloudPlatform/DataflowTemplates/blob/0ac92513838ca525adb3f616c9e1f65237334d1e/plugins/core-plugin/src/main/java/com/google/cloud/teleport/plugin/DockerfileGenerator.java#L46)
-python3.11 -m venv "$ENV_PATH"
+# These python versions need to be kept in sync with our dockerfile python versions
+# CHANGED: Use virtualenv to create the environment (bypasses broken ensurepip)
+virtualenv -p python3.11 "$ENV_PATH"
+
 . "$ENV_PATH"/bin/activate
 
 # allow one-off executions of pip to generate requirements locally without alarming automation
 alias pip_automation="pip"
 
-pip_automation install --upgrade pip==25.0.1 setuptools wheel
+pip_automation install --upgrade pip setuptools
 pip_automation install pip-tools
 
 # Install requirements from base file
